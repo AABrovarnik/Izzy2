@@ -17,7 +17,7 @@ Prepare Izzy2 for a controlled VPS deployment and document how the existing Tele
 2. [done] Add deployment configuration and operator documentation, including Telegram webhook cutover and rollback.
 3. [done] Harden the proposal execution guard so enabling the flag cannot claim execution without an adapter.
 4. [partial] Add or extend tests for migration/startup configuration and the safe Telegram/deployment path.
-5. [in progress] Run source checks and prepare a commit for publication. Do not perform VPS deployment or Telegram `setWebhook` without explicit server/bot access.
+5. [done] Run source checks and prepare a commit for publication. VPS deployment completed without Telegram `setWebhook`.
 
 ## Acceptance criteria
 
@@ -32,3 +32,8 @@ Prepare Izzy2 for a controlled VPS deployment and document how the existing Tele
 - Revert the deployment commit and restore the previous container image.
 - Before schema changes, take a PostgreSQL custom-format backup and verify the file exists.
 - Roll back Telegram by restoring the old webhook URL with the old secret; do not delete the bot or rotate tokens as part of this phase.
+
+## Deployment result
+
+- API/DB deployment: completed and smoke-verified on the VPS.
+- Telegram cutover: intentionally not performed; HTTPS/domain and a response-capable Telegram adapter are still required.
