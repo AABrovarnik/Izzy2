@@ -8,7 +8,7 @@ from app.config import get_settings
 from app.db import Base
 from app.schemas import ProposalCreate
 from app.security import hash_value, make_approval_token, parse_and_verify_approval_token
-from app.services import ServiceError, approve_proposal, create_proposal
+from app.services import ServiceError, approve_proposal, create_proposal, execute_proposal
 
 
 def test_approval_token_round_trip(monkeypatch):
@@ -52,3 +52,32 @@ def test_approval_is_single_use(monkeypatch):
     with pytest.raises(ServiceError) as replay:
         approve_proposal(session, proposal.id, 1, token)
     assert replay.value.status_code == 409
+
+
+def test_execution_flag_cannot_claim_missing_adapter(monkeypatch):
+    monkeypatch.setenv("APP_ENV", "development")
+    monkeypatch.setenv("APPROVAL_SIGNING_KEY", "test-signing-key")
+    monkeypatch.setenv("EXECUTION_ENABLED", "true")
+    get_settings.cache_clear()
+
+    engine = create_engine("sqlite:///:memory:")
+    Base.metadata.create_all(engine)
+    session = sessionmaker(bind=engine, expire_on_commit=False)()
+    proposal, _ = create_proposal(
+        session,
+        ProposalCreate(
+            action_type="CREATE_TASK",
+            payload={"title": "Review"},
+            preview="Create task: Review",
+            confidence=0.9,
+            idempotency_key="test-task-0001",
+        ),
+    )
+    proposal.status = "approved"
+    session.commit()
+
+    with pytest.raises(ServiceError) as not_implemented:
+        execute_proposal(session, proposal.id)
+    session.refresh(proposal)
+    assert not_implemented.value.status_code == 501
+    assert proposal.status == "approved"

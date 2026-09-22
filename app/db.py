@@ -19,7 +19,10 @@ class Base(DeclarativeBase):
 def init_db() -> None:
     from . import models  # noqa: F401
 
-    Base.metadata.create_all(bind=engine)
+    # Production schema changes are applied by Alembic before uvicorn starts.
+    # Keep create_all only for the lightweight local development mode.
+    if settings.app_env != "production":
+        Base.metadata.create_all(bind=engine)
 
 
 def get_db() -> Generator[Session, None, None]:

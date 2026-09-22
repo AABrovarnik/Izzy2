@@ -141,16 +141,9 @@ def execute_proposal(db: Session, proposal_id: str) -> Proposal:
     if not settings.execution_enabled:
         raise ServiceError(501, "Внешние адаптеры отключены: EXECUTION_ENABLED=false")
 
-    # В этой версии внешнее действие намеренно не симулируется. Реальный адаптер
-    # должен быть идемпотентным и вызываться в этом месте в отдельной транзакционной
-    # стратегии/outbox worker.
-    proposal.status = "executed"
-    proposal.executed_at = datetime.now(timezone.utc)
-    proposal.execution_result = {"mode": "adapter_required", "action_type": proposal.action_type}
-    audit(db, "worker", "proposal.executed", "proposal", proposal.id, proposal.execution_result)
-    db.commit()
-    db.refresh(proposal)
-    return proposal
+    # The flag is not an adapter. Until a real, idempotent adapter/outbox exists,
+    # never claim that an external action was executed.
+    raise ServiceError(501, "Внешний адаптер ещё не реализован")
 
 
 def ingest_telegram_update(db: Session, update_id: int, payload: dict) -> Source:
